@@ -42,6 +42,12 @@ var createData = function (term, pairs, callback) {
 
   var nodes = pairs.slice(0);
 
+  // Try to find sets of tags related to the relations of the main term :-S
+  for (var i = 0; i < pairs.length; i++) {
+    findRelated(i);
+  }
+
+  // Compage array items based on relation (they can have different ID's...)
   var compare = function (el) {
     for (var l = 0; l < nodes.length; l++) {
       if (nodes[l].relation == el.relation) return false;
@@ -49,12 +55,14 @@ var createData = function (term, pairs, callback) {
     return true;
   };
 
+  // Find index in array based on relation name (objects are diffent so cant use indexof())
   var find = function (el) {
     for (var l = 0; l < nodes.length; l++) {
       if (nodes[l].relation == el.relation) return l;
     }
   };
 
+  // Find sets of relations for a tag from mongodb
   var findRelated = function (i) {
     tagPair.find({tag: pairs[i].relation}, function (err, relPairs) {
       pairs[i].related = relPairs;
@@ -68,12 +76,10 @@ var createData = function (term, pairs, callback) {
     });
   };
 
-  for (var i = 0; i < pairs.length; i++) {
-    findRelated(i);
-  }
-
+  // Callback once related stuff has been found
   var findRelatedDone = function () {
-    console.log("DONE");
+
+    // Build out array of links between pairs for D3
     var links = (function () {
       var arr = [];
       for (var i = 0; i < pairs.length; i++) {
@@ -97,6 +103,7 @@ var createData = function (term, pairs, callback) {
       return arr;
     })();
 
+    // put the root item in at the middle
     var root = {
       number: 0,
       tag: term,
@@ -105,6 +112,7 @@ var createData = function (term, pairs, callback) {
 
     nodes.unshift(root);
 
+    // callback with the finished data
     callback({
       nodes: nodes,
       links: links
