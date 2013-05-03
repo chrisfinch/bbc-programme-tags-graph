@@ -3,8 +3,10 @@
  * GET home page.
  */
 
+var mongoUri = process.env.MONGOLAB_URI || process.env.MONGOHQ_URL || 'mongodb://localhost/mydb';
+
 var mongoose = require('mongoose');
-mongoose.connect('mongodb://localhost/tag-pairs');
+mongoose.connect(mongoUri);
 
 var tagPair = mongoose.model('tagPair', { number: Number, tag: String, relation: String });
 
