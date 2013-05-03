@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css' />
+
+    <style>
+
+    #search {
+      position: absolute;;
+      top: 0;
+      left: 0;
+      z-index: 2;
+    }
+
+    svg {
+      /*border: 1px solid #000;*/
+      position: absolute;
+      top: 0;
+      left: 0;
+      background-color: #ccc;
+      z-index: 1;
+    }
+
+    rect {
+      fill: none;
+      pointer-events: all;
+    }
+
+    .node {
+      fill: #ddd;
+      stroke-width: 1px;
+      stroke: #fff;
+    }
+
+/*    .cursor {
+      fill: none;
+      stroke: brown;
+      pointer-events: none;
+    }*/
+
+    .link {
+      stroke: #999;
+    }
+
+    text {
+      color: red;
+      font-size: 8px;
+    }
+
+    </style>
+
+  </head>
+  <body>
+
+  <form action="#" id="search" name="search">
+    <input type="text" name="term" class="text" value="Jeremy_Clarkson" type="text">
+    <input id="sumbit" type="submit">
+  </form>
+
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+  <script>
+
+  document.search.onsubmit = function () {
+    getData(document.search.term.value);
+    return false;
+  };
+
+  var getData = function (term) {
+    d3.json("/data?term="+term, function (data) {
+
+      console.log(data);
+
+      var graph = data;
+      var width = window.innerWidth,
+          height = window.innerHeight;
+
+      d3.select("svg").remove();
+
+      var svg = d3.select("body").append("svg")
+          .attr("width", width)
+          .attr("weight", height);
+
+      var force = d3.layout.force()
+          .nodes(graph.nodes)
+          .links(graph.links)
+          .size([width, height])
+          .linkDistance(function (link, index) {
+            //console.log(link.target.number, (1/link.target.number)*100);
+            return (150/link.target.number);
+          })
+          .charge(function (node, index) {
+            //console.log(Math.pow(node.number*5, 2)*-1);
+            //return Math.pow(node.number*5, 2)*-1;
+            return -300;
+          })
+          .on("tick", tick)
+          .start();
+
+      var link = svg.selectAll(".link")
+         .data(graph.links)
+       .enter().append("line")
+         .attr("class", "link");
+
+      var node = svg.selectAll(".node")
+          .data(graph.nodes)
+          .enter()
+          .append("circle")
+          .attr("class", "node")
+          .attr("r", function (d) {
+            //console.log(d.rad);
+            return d.weight > 8 ? d.weight/4 : d.weight;
+          });
+
+      var text = svg.selectAll(".text")
+          .data(graph.nodes)
+          .enter()
+          .append("text")
+          .attr("class", "text")
+          .text(function (d) {
+            return d.relation;
+          });
+
+      function tick() {
+        link.attr("x1", function(d) { return d.source.x; })
+            .attr("y1", function(d) { return d.source.y; })
+            .attr("x2", function(d) { return d.target.x; })
+            .attr("y2", function(d) { return d.target.y; });
+
+        text.attr("x", function(d) { return d.x; })
+            .attr("y", function(d) { return d.y; });
+
+        node.attr("cx", function(d) { return d.x; })
+            .attr("cy", function(d) { return d.y; });
+      }
+
+    });
+
+  };
+
+  </script>
+
+  </body>
+</html>
