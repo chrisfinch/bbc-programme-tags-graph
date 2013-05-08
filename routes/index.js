@@ -16,16 +16,6 @@ exports.index = function(req, res){
 
   res.render('index', { title: 'Express', term: term });
 
-  // tagPair.find({ tag: term }, function (err, pairs) {
-
-  //   // for (var p in pairs) {
-  //   //   console.log("=========", pairs[p].relation, pairs[p].number);
-  //   // }
-
-  //   res.render('index', { title: 'Express', term: term });
-
-  // });
-
 };
 
 exports.data = function (req, res) {
@@ -57,11 +47,15 @@ var createData = function (term, sourceItem, depth, callback) {
       console.log("Starting out with some items: ", items);
 
       // y & i incorrect inside loops...
-
+      var outerIterator = 0;
       items.forEach(function (item, y) {
+        outerIterator++;
+        var innerIterator = 0;
         item.list.forEach(function (e, i) {
           Item.findOne({_id: e.id}, function (err, foundItem) {
-            console.log("Found: ", i, y);
+
+            innerIterator++;
+
             //foundItems = foundItems.concat(foundItem.related);
             nodes.push({
               name: foundItem.name
@@ -78,11 +72,10 @@ var createData = function (term, sourceItem, depth, callback) {
               list: foundItem.related
             });
 
-            console.log("DEPTH: ", that.currentDepth, " y: ", y, " items.length-1: ", items.length-1, " i: ", i, "item.list.length-1: ", item.list.length-1);
-
-            if (that.currentDepth <= depth-1 && i == item.list.length-1 && y == items.length-1) {
+            //console.log("DEPTH: ", that.currentDepth, " outerIterator: ", outerIterator, " items.length-1: ", items.length-1, " innerIterator: ", innerIterator, "item.list.length-1: ", item.list.length-1);
+            if (that.currentDepth <= depth-1 && innerIterator == item.list.length && outerIterator == items.length) {
               that.search(foundItems);
-            } else if (i == item.list.length-1 && y == items.length-1) {
+            } else if (innerIterator == item.list.length && outerIterator == items.length) {
               console.log("DONE???");
               done();
             }
