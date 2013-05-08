@@ -3,34 +3,36 @@
  * GET home page.
  */
 
-var mongoUri = process.env.MONGOLAB_URI || process.env.MONGOHQ_URL || 'mongodb://localhost/mydb';
+var mongoUri = process.env.MONGOLAB_URI || process.env.MONGOHQ_URL || 'mongodb://localhost/tag-adjacency';
 
 var mongoose = require('mongoose');
 mongoose.connect(mongoUri);
 
-var tagPair = mongoose.model('tagPair', { number: Number, tag: String, relation: String });
+var Item = mongoose.model('tag', { name: String, related: mongoose.Schema.Types.Mixed });
 
 exports.index = function(req, res){
 
   term = req.query.term || "Jeremy_Clarkson";
 
-  tagPair.find({ tag: term }, function (err, pairs) {
+  res.render('index', { title: 'Express', term: term });
 
-    // for (var p in pairs) {
-    //   console.log("=========", pairs[p].relation, pairs[p].number);
-    // }
+  // tagPair.find({ tag: term }, function (err, pairs) {
 
-    res.render('index', { title: 'Express', term: term });
+  //   // for (var p in pairs) {
+  //   //   console.log("=========", pairs[p].relation, pairs[p].number);
+  //   // }
 
-  });
+  //   res.render('index', { title: 'Express', term: term });
+
+  // });
 
 };
 
 exports.data = function (req, res) {
   term = req.query.term || "Jeremy_Clarkson";
 
-  tagPair.find({ tag: term }, function (err, pairs) {
-    createData(term, pairs, function (data) {
+  Item.findOne({ name: term }, function (err, foundItem) {
+    createData(term, foundItem, 2, function (data) {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.write(JSON.stringify(data));
       res.end();
@@ -38,85 +40,71 @@ exports.data = function (req, res) {
   });
 };
 
-var createData = function (term, pairs, callback) {
+var createData = function (term, sourceItem, depth, callback) {
+  console.log("found root item: ", sourceItem, "==============");
+  var nodes = [];
+  var links = [];
 
-  var nodes = pairs.slice(0);
+  var recursiveSearch = function (startingItems, depth, done) {
 
-  // Try to find sets of tags related to the relations of the main term :-S
-  for (var i = 0; i < pairs.length; i++) {
-    findRelated(i);
-  }
+    this.currentDepth = 0;
 
-  // Compage array items based on relation (they can have different ID's...)
-  var compare = function (el) {
-    for (var l = 0; l < nodes.length; l++) {
-      if (nodes[l].relation == el.relation) return false;
-    }
-    return true;
-  };
+    this.search = function (items) {
+      var that = this;
+      var foundItems = [];
+      that.currentDepth++;
 
-  // Find index in array based on relation name (objects are diffent so cant use indexof())
-  var find = function (el) {
-    for (var l = 0; l < nodes.length; l++) {
-      if (nodes[l].relation == el.relation) return l;
-    }
-  };
+      console.log("Starting out with some items: ", items);
 
-  // Find sets of relations for a tag from mongodb
-  var findRelated = function (i) {
-    tagPair.find({tag: pairs[i].relation}, function (err, relPairs) {
-      pairs[i].related = relPairs;
-      nodes[nodes.indexOf(pairs[i])]["rad"] = relPairs.length;
+      // y & i incorrect inside loops...
 
-      for (var k = 0; k < relPairs.length; k++) {
-        if (compare(relPairs[k])) nodes.push(relPairs[k]);
-      }
-
-      if (i == pairs.length-1) findRelatedDone();
-    });
-  };
-
-  // Callback once related stuff has been found
-  var findRelatedDone = function () {
-
-    // Build out array of links between pairs for D3
-    var links = (function () {
-      var arr = [];
-      for (var i = 0; i < pairs.length; i++) {
-        arr.push({
-          source: 0,
-          target: i+1
-        });
-
-        if (pairs[i].related && pairs[i].related.length) {
-          for (var j = 0; j < pairs[i].related.length; j++) {
-
-            arr.push({
-              source: i,
-              target: find(pairs[i].related[j])
+      items.forEach(function (item, y) {
+        item.list.forEach(function (e, i) {
+          Item.findOne({_id: e.id}, function (err, foundItem) {
+            console.log("Found: ", i, y);
+            //foundItems = foundItems.concat(foundItem.related);
+            nodes.push({
+              name: foundItem.name
             });
 
-          }
-        }
+            links.push({
+              source: item.index,
+              target: nodes.length,
+              _weight: parseInt(e.weight, 10)
+            });
 
-      }
-      return arr;
-    })();
+            foundItems.push({
+              index: nodes.length,
+              list: foundItem.related
+            });
 
-    // put the root item in at the middle
-    var root = {
-      number: 0,
-      tag: term,
-      relation: term
+            console.log("DEPTH: ", that.currentDepth, " y: ", y, " items.length-1: ", items.length-1, " i: ", i, "item.list.length-1: ", item.list.length-1);
+
+            if (that.currentDepth <= depth-1 && i == item.list.length-1 && y == items.length-1) {
+              that.search(foundItems);
+            } else if (i == item.list.length-1 && y == items.length-1) {
+              console.log("DONE???");
+              done();
+            }
+          });
+        });
+      });
     };
 
-    nodes.unshift(root);
+    this.search(startingItems);
 
-    // callback with the finished data
+  };
+
+  recursiveSearch([{index:0, list: sourceItem.related}], depth, function () {
+    console.log("DONE");
+    var root = {
+      name: sourceItem.name
+    };
+    nodes.unshift(root);
     callback({
       nodes: nodes,
       links: links
     });
-  };
+  });
 
 };

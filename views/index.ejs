@@ -54,11 +54,11 @@
   <body>
 
   <form action="#" id="search" name="search">
-    <input type="text" name="term" class="text" value="Jeremy_Clarkson" type="text">
+    <input type="text" name="term" class="text" value="Kathleen_Turner" type="text">
     <input id="sumbit" type="submit">
   </form>
 
-  <script src="http://d3js.org/d3.v3.min.js"></script>
+  <script src="/javascripts/d3.v3.min.js"></script>
   <script>
 
   document.search.onsubmit = function () {
@@ -87,7 +87,7 @@
           .size([width, height])
           .linkDistance(function (link, index) {
             //console.log(link.target.number, (1/link.target.number)*100);
-            return (150/link.target.number);
+            return (150/link._weight);
           })
           .charge(function (node, index) {
             //console.log(Math.pow(node.number*5, 2)*-1);
@@ -109,7 +109,7 @@
           .attr("class", "node")
           .attr("r", function (d) {
             //console.log(d.rad);
-            return d.weight > 8 ? d.weight/4 : d.weight;
+            return d.weight > 30 ? 30 : d.weight;
           });
 
       var text = svg.selectAll(".text")
@@ -118,10 +118,11 @@
           .append("text")
           .attr("class", "text")
           .text(function (d) {
-            return d.relation;
+            return d.name;
           });
 
       function tick() {
+        console.log("=======================");
         link.attr("x1", function(d) { return d.source.x; })
             .attr("y1", function(d) { return d.source.y; })
             .attr("x2", function(d) { return d.target.x; })
